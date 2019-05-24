@@ -1,0 +1,283 @@
+---
+title: "TP1"
+author: "Abdallah DAABOUL"
+date: "17 mai 2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+#Exercice 1
+##Q1
+
+Le code proposé représente la loi (1/8 1/2 1/8 1/4) autrement dit, passé à l'un des 4 états avec les probas correspondantes.
+
+##Q2
+```{r}
+EtatSuiv=function(i,Q){
+  lg=length(Q)
+  p=Q[i,]
+  p1 = c(0, p[1:lg-1])
+  t = runif(1)
+  u = (t > cumsum(p1)) & (t < cumsum(p))
+  X = which(u==1)
+  return (X)  
+}
+
+```
+
+##Q3 - Etude d'une matrice irréductible et apériodique
+###Partie a
+```{r}
+M=rbind(c(1/3, 1/3, 1/3), c(1/2, 0, 1/2),c(0, 1/2 , 1/2)) #Creation de la matrice
+Etat=rep(NA,50)
+Etat[1]=1  # Comme mu0=(1,0,0) on commence de l état 1
+for(t in 2:50){     #n=50
+Etat[t]=EtatSuiv(Etat[t-1],M)   #Je stocke l état à chaque itération
+}
+```
+
+###Partie b
+```{r}
+Etat=rep(NA,20)
+Etat[1]=1
+
+par(mfrow=c(1,3))
+for(Z in 1:3){
+for(t in 2:20){     #n=20
+  Etat[t]=EtatSuiv(Etat[t-1],M)   #Je stocke l état de chaque itération
+}
+Iteration=1:20
+plot(Iteration,Etat,type="s",col=Z,main = "Trajectoire de Xn pour n=20")
+
+}
+```
+
+###Partie c
+Oui la matrice est irréductible parceque tout les états communiquent  
+On remarque que nous pouvons remplacer le système pi*p=pi par p'pi'=pi'   
+Alors le vecteur pi sera le vecteur correspondant à la valeur propre 1 .  
+On divise pi par la somme de ses composantes pour avoir une somme de pi = 1 
+
+```{r}
+tM=t(M) #Transposé de M
+Propres=eigen(tM)
+pi=Propres$vectors[,1] / sum(Propres$vectors[,1])
+```
+
+On verifie en appliquant la commande pi%*%M et on remarque qu'on obtient la même valeur de pi
+###Partie d
+```{r}
+#fonction qui simule n etat
+simul <- function(n,M,P0){
+  X = rep(0,times=n)
+  l = length(M)
+  p1 = c(0,P0[1:l-1])
+  t = runif(1)
+  u = (t > cumsum(p1)) & (t < cumsum(P0))
+  X[1] = which(u==1)
+  
+  for(i in 2:n){
+    X[i]=EtatSuiv(X[i-1],M)
+  }
+  return (X)
+}
+P0 = c(1,0,0)
+
+T=seq(1,1000)
+X = simul(1000,M,P0)
+f1 = cumsum(X==1)/T
+f2 = cumsum(X==2)/T
+f3 = cumsum(X==3)/T
+
+par(mfrow=c(1,3))
+plot(f1,type='l')
+plot(f2,type='l',col='red')
+plot(f3,type='l',col='green')
+
+```
+
+Comme la matrice est irreductible et pi loi stationnaire alors on peut appliquer le théorème ergodique  
+Dans notre cas on prend f= la fonction caractéristique et d'après les graphes on remarque très bien la convergence à pi   
+Pour l'état 1 la loi converge vers 0.23  donc pi[1] 
+Pour l'état 2 la loi converge vers 0.3  donc pi[2]  
+Pour l'état 3 la loi converge vers 0.461  donc pi[3]  
+
+Pour la convergence en loi  
+Comme la matrice est apériodique alors on s'attend une convergence en loi   
+
+###Partie e
+Periode = 1
+```{r}
+#Simulation de 1000 trajectoires de 10 iteration (on prend 11 parceque la première est toujours 1)
+Trajectoires=matrix(0,1000,11)
+for(cpt in 1:1000){
+  Trajectoires[cpt,] = simul(11,M,P0)
+}
+par(mfrow=c(2,5))
+for(i in 2:11){
+  barplot(table(Trajectoires[,i])/1000,beside=TRUE,main = paste('Pour l iteration',i))
+}
+
+```
+  
+Le barplot vérifie bien la convergence en loi, plus les itérations augmentent plus on converge a la loi stationnaire 0.23 0.30 0.461 
+
+
+##Q4
+
+###Partie a
+```{r}
+par(mfrow=c(1,1))
+Q=rbind(c(0, 1, 0), c(1/2, 0, 1/2),c(0, 1 , 0)) #Creation de la matrice Q
+#Trajectoire
+Xn=simul(100,Q,P0)
+plot(1:100,Xn,type="s")
+
+```
+
+
+###Partie b
+```{r}
+#Simulation de 1000 trajectoires de 10 iterations (on prend 11 parceque la première est toujours 1)
+Trajectoires=matrix(0,1000,20)
+for(cpt in 1:1000){
+Trajectoires[cpt,] = simul(20,Q,P0)
+}
+par(mfrow=c(4,5))
+for(i in 1:20){
+barplot(table(Trajectoires[,i])/1000,beside=TRUE,main = paste('Pour l iteration',i))
+}
+```
+
+
+Les histogrames verifient bien la matrice Q 
+Etant dans l'état 1 ou 3 on est oblige d'aller à l'état 2 
+Etant dans l'état 2  on a la même chance d'aller à l'état 1 ou 3  
+Partant de 1 :  
+à une iteration pair on est obligé d'être dans l'état 2 
+à une itération impaire on on est soit en 1 soit en 3 (50% 50%) 
+Et comme le barplot itère entre 2 modèles alors on a pas une convergence en loi (question 4a)  
+X(2k)---> (0 1 0) 
+X(2k+1)--->(0.5 0 0.5)  
+
+##Q5 - Etude d'une matrice non irréductible
+###Partie(a)
+```{r}
+
+R=rbind(c(0.5,0.5,0,0),c(0.5,0.5,0,0),c(0,0,2/3,1/3),c(0,0,1/4,3/4))
+Xn=simul(100,R,P0)
+P0=c(1,0,0,0)
+P0prime=c(0,0,1,0)
+
+
+par(mfrow=c(1,2))
+Xn1=simul(100,R,P0)
+plot(1:100,Xn1,type='s',main = "CM (Xn) partant de 1 ")
+Xn2=simul(100,R,P0prime)
+plot(1:100,Xn2,type='s',main = "CM (Xn) partant de 3 ")
+
+#p0
+vect3=matrix(NA,1000,20)
+for(i in 1:1000){
+  vect3[i,]=simul(20,R,P0)
+}
+
+par(mfrow=c(4,5))
+for(i in 1:20){
+  barplot(table(vect3[,i])/1000,beside=T,main=paste('Pour l iteration',i))
+}
+
+#p0prime
+vect4=matrix(0,1000,20)
+for(i in 1:1000){
+  vect4[i,]=simul(20,R,P0prime)
+}
+
+par(mfrow=c(4,5))
+for(i in 1:20){
+  barplot(table(vect4[,i])/1000,beside=T,main=paste('Pour l iteration',i))
+}
+
+```
+
+D'après les deux dernière questions, on peut remarquer que la loi converge soit dans la première classe de recurrence (1,2), soit dans la deuxième(3,4), donc on a pas une convergence en loi
+
+
+#Exercice 2
+##Q1
+###Construction de la fonction malz
+```{r}
+malz=function(x0,p,n){
+  x=rep(NA,n)
+  x[1]=x0
+  if(n>1){
+  for (i in 2:n) {
+    u=runif(1)
+    x[i]=x[i-1]-1*(u>p)+1*(u<=p)
+  }
+    
+  }
+  return(x)
+}
+```
+##Q2  
+
+```{r}
+marche1=malz(0,2/3,1000)
+marche2=malz(0,1/2,1000)
+iteration=1:1000
+plot(iteration,marche1,type = "l",main=paste(" 2 Trajectoires pour proba 2/3, 1/2"),ylab = "Etat",col="blue")
+lines(iteration,marche2,type = "l",col="red")
+
+```
+
+
+Nous remarquons que la courbes rouge ( p=0.5) reste presque stable et varie très peu autour de sa position initiale. Tandis que la courbe bleu augmente à cause de la proba elevé (0.666) pour monter d'état.
+
+
+##Q3
+
+```{r}
+MAIZd <- function(N,d){
+		X=matrix(rep(NA,N*d),nrow=d)
+		X[,1]=matrix(0,d,1)
+		for(i in 2:N){
+			composante=runif(1,0,d)
+			sens=runif(1)
+			Zn=matrix(0,d,1)
+			Zn[floor(composante)+1]=(sens>0.5)-(sens<0.5)
+			X[,i]=X[,i-1]+Zn
+		}
+		return(X)
+}
+
+NormeM <- function(A){
+	V=rep(NA,dim(A)[2])
+	for(i in 1:length(V)){
+		V[i]=norm(t(A[,i]),"F")	
+	}
+	return(V)
+}
+
+
+d2=MAIZd(1000,2)
+plot(d2[1,],d2[2,],type='l')
+
+N=1000
+d1=NormeM(MAIZd(N,1))
+d2=NormeM(MAIZd(N,2))
+d3=NormeM(MAIZd(N,3))
+d5=NormeM(MAIZd(N,5))
+plot(1:N,d5,col="red",type='l')
+
+lines(1:N,d1,type='l')
+lines(1:N,d2,col="green",type='l')
+lines(1:N,d3,col="blue",type='l')
+lines(1:N,d5,col="red",type='l')
+legend(1, 30, legend=c("Z1", "Z2","Z3","Z5"),
+       col=c("black","green","blue", "red"), lty=1, cex=0.8)
+```
+
+La courbe de dimension 1 reste autour de 0 ce qui est normal
+Plus la dimension augmente plus l'état a tendance à augmenter ce qui est bien vérifié par les graphes.
+D'après la formule plus "d"" augmente plus "p" diminue, et donc la proba de monter d'état augmente.
